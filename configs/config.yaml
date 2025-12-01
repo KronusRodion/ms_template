@@ -1,0 +1,4 @@
+env: debug
+grpc:
+  port:   8080
+  timeout: 300s
