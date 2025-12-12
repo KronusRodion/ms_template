@@ -4,10 +4,11 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
-	"net"
 	"net/http"
 
+	"ms_template/internal/api/notes"
 	"ms_template/internal/config"
+	grpcserver "ms_template/internal/grpc"
 
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"google.golang.org/grpc"
@@ -16,18 +17,22 @@ import (
 type App struct {
 	log         *slog.Logger
 	cfg         *config.Config
-	grpcServer  *grpc.Server
+	grpcServer  *grpcserver.App
 	httpServer  *http.Server
 	port        int
 	metricsPort int
 }
 
 func New(log *slog.Logger, cfg *config.Config) *App {
+	server := notes.NewServer(log)
+	grpcServer := grpcserver.New(log, server, *cfg.GRPC.Port, *cfg.Prometheus.Port)
+	
 	return &App{
 		log:         log,
 		cfg:         cfg,
-		grpcServer:  grpc.NewServer(),
+		grpcServer:  grpcServer,
 		port:        *cfg.GRPC.Port,
+		httpServer: &http.Server{},
 		metricsPort: *cfg.Prometheus.Port,
 	}
 }
@@ -52,17 +57,8 @@ func (a *App) Run() error {
 }
 
 func (a *App) runGRPCServer() error {
-	l, err := net.Listen("tcp", fmt.Sprintf(":%d", a.port))
-	if err != nil {
-		return fmt.Errorf("ошибка прослушивания порта %d: %w", a.port, err)
-	}
 
-	a.log.Info("gRPC server started",
-		slog.String("addr", l.Addr().String()),
-		slog.Int("metrics_port", a.metricsPort),
-	)
-
-	if err := a.grpcServer.Serve(l); err != nil && err != grpc.ErrServerStopped {
+	if err := a.grpcServer.Run(); err != nil && err != grpc.ErrServerStopped {
 		return fmt.Errorf("ошибка обслуживания grpc сервера: %w", err)
 	}
 
@@ -105,14 +101,11 @@ func (a *App) Shutdown(ctx context.Context) error {
 		a.log.Info("HTTP сервер метрик остановлен")
 	}
 	
-	// Здесь можно добавить закрытие других ресурсов
-	// (базы данных, пулов соединений, кэшей и т.д.)
-	
 	return nil
 }
 
 // GRPCServer возвращает gRPC сервер (для совместимости со старым кодом)
-func (a *App) GRPCServer() *grpc.Server {
+func (a *App) GRPCServer() *grpcserver.App {
 	return a.grpcServer
 }
 

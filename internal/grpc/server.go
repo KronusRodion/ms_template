@@ -6,7 +6,6 @@ import (
 	"ms_template/internal/grpc/notesGRPC"
 	metrics "ms_template/internal/metric"
 	"net"
-	"net/http"
 
 	"github.com/grpc-ecosystem/go-grpc-middleware/v2/interceptors/recovery"
 	"google.golang.org/grpc"
@@ -49,9 +48,6 @@ func New(log *slog.Logger, NoteServer notesGRPC.NoteServer, port int, metricsPor
 
 func (a *App) Run() error {
 
-    go a.runMetricsServer()
-    // Создаём listener, который будет слушить TCP-сообщения, адресованные
-    // Нашему gRPC-серверу
     l, err := net.Listen("tcp", fmt.Sprintf(":%d", a.port))
     if err != nil {
         return fmt.Errorf("ошибка прослушивания порта %d: %w", a.port, err)
@@ -71,20 +67,6 @@ func (a *App) Run() error {
 }
 
 
-func (a *App) runMetricsServer() {
-    http.Handle("/metrics", a.metrics.Handler())
-    http.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
-        w.WriteHeader(http.StatusOK)
-        w.Write([]byte("OK"))
-    })
-    
-    addr := fmt.Sprintf(":%d", a.metricsPort)
-    a.log.Info("Metrics server started", slog.String("addr", addr))
-    
-    if err := http.ListenAndServe(addr, nil); err != nil {
-        a.log.Error("Failed to start metrics server", slog.String("error", err.Error()))
-    }
-}
 
 // MustRun запускает приложение и паникует при ошибке
 func (a *App) MustRun() {

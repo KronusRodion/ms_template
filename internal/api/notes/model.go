@@ -3,6 +3,7 @@ package notes
 import (
 	"context"
 	"log/slog"
+	"ms_template/internal/api/notes/repository"
 	"ms_template/internal/api/notes/usecase"
 	"ms_template/internal/domain"
 )
@@ -12,12 +13,12 @@ type NoteServer struct {
 	usecase usecase.NoteUsecase
 }
 
-func NewServer() *NoteServer {
-	// Здесь создаем репо и usecase и передаем в NoteServer
-	// repository := repository.NoteRepository
-	// usecase := usecase.NoteUsecase
+func NewServer(log *slog.Logger) *NoteServer {
+	
+	repo := repository.NewPostgresRepo()
+	usecase := usecase.NewBasic(repo)
 
-	return &NoteServer{}
+	return &NoteServer{usecase: usecase, log: log}
 }
 
 func (n *NoteServer) AddNote(ctx context.Context, note domain.Note) {
