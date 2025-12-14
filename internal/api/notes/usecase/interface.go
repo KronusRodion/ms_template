@@ -3,6 +3,6 @@ package usecase
 import "ms_template/internal/domain"
 
 type NoteUsecase interface {
-	AddNote(domain.Note)
+	AddNote(domain.Note) string
 	GetNotes(userID string) []domain.Note
 }

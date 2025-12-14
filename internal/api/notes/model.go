@@ -21,8 +21,8 @@ func NewServer(log *slog.Logger) *NoteServer {
 	return &NoteServer{usecase: usecase, log: log}
 }
 
-func (n *NoteServer) AddNote(ctx context.Context, note domain.Note) {
-	n.usecase.AddNote(note)
+func (n *NoteServer) AddNote(ctx context.Context, note domain.Note) string {
+	return n.usecase.AddNote(note)
 }
 
 func (n *NoteServer) GetNotes(ctx context.Context, userID string) []domain.Note {
